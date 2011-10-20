@@ -1,112 +1,118 @@
 #! /usr/bin/python
+# -*- coding: iso-8859-1 -*-
+
+# Script para cálculo do erro quadrático médio
+# embutido no cálculo computacional de 
+# descritores de curvatura de imagens 
+# Recebe como parâmetro de entrada
+# o diretório raiz da onde se encontra o banco de imagens 
+# e os valores analíticos de referência para comparação do cálculo 
+
 import sys
-import glob
+import os
+from os.path import *
+from re import *
 from numpy import *
 from scipy.interpolate import interp1d
 from matplotlib.pyplot import *
 from mpl_toolkits.mplot3d import *
 from curvature import curvature_fft1d
 
-# s = vetor que armazena diferentes valores de desvio padrao sigma da gaussiana
-# utilizada para janela de suavizacao 
-sigma_range = linspace(3.,50.,20.)
+# Esta função é chamada pelo método os.path.walk()
+# Coloca em três listas (arg[0], arg[1] e arg[2]) 
+# os nomes dos arquivos das figuras que calcularemos a curvatura
+# , os respetivos dados para curvaturas analíticas e o nome para
+# o arquivo de armazenamento das saídas.
+# Qualdo o método os.path.walk() executa, este se encarrega de visitar
+# cada diretório abaixo da raíz fornecida chamando esta função. 
+# Antes de chamar visit() os.path.walk() passa como parâmetro, em d,
+# o nome do diretório visitado e em fl uma lista de arquivos
+# contidos neste mesmo diretório 
+def visit(arg,d,fl):
+  for f in fl:
+   aux = join(d,f)   
+   if isfile(aux):
+    r = compile("dat$")
+    if r.search(aux):
+      # arquivo .dat (curvatura analítica)
+      arg[0].append(aux)
+    else:
+     r = compile("bmp$")
+     if r.search(aux):
+       # arquivo .bmp (imagem para calculo da curvatura)
+       arg[1].append(aux)
+      # nome do arquivo .dat para saída
+       arg[2].append(r.sub("dat",aux))
+
+# Esta funcao auxiliar calcula o erro RMS entre dois vetores
+# de mesmo tamanho
+def rms_err(a,b):
+  e = diff(array([a,b]),axis = 0)
+  n = float(e.size)
+  e = sqrt(sum(square(e))/n)
+  return(e)
+
+
+#######################################
+#                                     #
+#       Programa Principal            #
+#                                     #
+#######################################
+
+# s : Faixa de valores e número de pontos para o
+# desvio padrão do filtro passa baixas Gaussiano.
+# Este fator determina a frequência de corte deste
+# filtro, que é aplicado antes de se calcular a curvatura.
+# Quanto mais pontos mais curvaturas serão calculadas por imagem  
+
+sigma_range = logspace(-0.25,1.75,30.,endpoint = True)
+# s  é apenas um apelido para sigma_range
 s = sigma_range
 
-# Le a curvatura analitica do arquivo de entrada
-ana = fromfile(sys.argv[2],dtype=float,sep="\n")
+# lista para armazenamento do nome dos arquivos
+# de entrada e saída 
+# lista_de_arquivos[0] -> Lista dos nomes dos arquivos de imagens de entrada
+# lista_de_arquvos[1] ->  Lista dos nomes dos arquivos de curvaturas analíticas correspondentes na forma de vetor coluna.
+# lista_de_arquivos[2] -> Lista dos nomes Arquivos de saída para armazenamento do  erro calculado 
+lista_de_arquivos = [[],[],[]]
 
-tf = arange(ana.size)/float(ana.size-1)
+# Obtém listas dos nomes dos arquivos a partir da 
+# raiz fornecida ao script
+if sys.argv[1]: 
+ walk(sys.argv[1],visit,lista_de_arquivos)
+else: os.exit(-1)
 
-# Instancializa objeto
-c = curvature_fft1d(sys.argv[1],sigma_range)
+# Loop externo para cada imagem
+#  Computa curvatura e calcula o erro quadrático médio
+#  em relacao a resposta  analitica
+for ana_str,im_str,fout_str in zip(lista_de_arquivos[0],lista_de_arquivos[1],lista_de_arquivos[2]):
+ # Leitura dos dados para Vetor com reposta analítica
+ ana = fromfile(ana_str,dtype=float,sep="\n")
+ # arquivo de saída 
+ fout = open(fout_str,"w")
+ # Instancializa objeto para calculo de curvaturas
+ print im_str
+ c = curvature_fft1d(im_str,s)
+ # curvs -> Curvograma k(sigma,t)
+ curvs = ndarray((s.size,c.t.size),dtype="float")
+ # Erro quadrático médio do calculo da curvatura 
+ # da forma sob análise para cada valor de sigma
+ err =  ndarray((s.size),dtype="float")
+ # Parâmetro t para interpolação da função curvatura
+ # para reamostragem com  o mesmo número de pontos que 
+ # a resposta analítica
+ tf = arange(ana.size)/float(ana.size-1)
+ # Interage para cada valor de sigma
+ print >> fout,"sigma\terr_rms\n"
+ for i in arange(s.size):
+   print "sigma = {0}".format(s[i])
+   # obtém curvaturas para o curvograma
+   #curvs[i] = c(i,c.t)
+   # obtém o erro quadrático médio entre curvatura analítica
+   # e a reamostrada 
+   err[i] = rms_err(ana,c(i,tf))
+   print >> fout,"{0}\t{1}".format(s[i],err[i])
+ fout.close()
 
-# Curvograma k(sigma,t)
-curvs = ndarray((s.size,c.t.size),dtype="float")
-for i in arange(s.size):
-  curvs[i] = copy(c(i,c.t))
-
-###########################################
-# Apresentacao dos resultados em figuras
-###########################################
-# Figura 1 : Contorno original e reconstruido
-# para o menor valor de sigma
-###########################################
-figure(1)
-suptitle('Contour reconstruction, after Frequency-Domain gaussian\'s window smoothing, with energy compensation',fontsize=12)
-
-subplot(331)
-plot(c.z.real,c.z.imag)
-xlabel('x',fontsize=12)
-ylabel('y',fontsize=12)
-title('Original',fontsize=12)
-
-subplot(333)
-plot(c.t,c.z.real,c.t,c.z.imag)
-xlabel('t',fontsize=12)
-ylabel('x,y',fontsize=12)
-
-subplot(337)
-
-plot(c.rcountours[4].real,c.rcountours[4].imag)
-xlabel('x',fontsize=12)
-ylabel('y',fontsize=12)
-title('Reconstructed for $\sigma = '+repr(s[4])+'$',fontsize=12)
-
-subplot(339)
-plot(c.t,c.rcountours[4].real,c.t,c.rcountours[4].imag)
-xlabel('t',fontsize=12)
-ylabel('x,y',fontsize=12)
-
-###################################################################################
-# Figura 2 : Mostra a curvatura para todas as suavicoes (com compensacao de energia)
-####################################################################################
-figure(2)
-suptitle('Computed curvatures through Costa and Fontoura 1D Fourier method (Costa,1996)',fontsize=12)
-
-subplot(321)
-title('Analytical',fontsize=12)
-plot(tf,ana)
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-subplot(322)
-title('$\sigma = '+ s[0].__str__()+'$',fontsize=14)
-plot(tf,c(0,tf),c.t,c(0,c.t))
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-subplot(323)
-title('$\sigma = '+ s[1].__str__()+'$',fontsize=14)
-plot(tf,c(1,tf),c.t,c(1,c.t))
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-subplot(324)
-title('$\sigma = '+ s[2].__str__()+'$',fontsize=14)
-plot(tf,c(2,tf),c.t,c(2,c.t))
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-subplot(325)
-title('$\sigma = '+ s[3].__str__()+'$',fontsize=14)
-plot(tf,c(3,tf),c.t,c(3,c.t))
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-subplot(326)
-title('$\sigma = '+ s[15].__str__()+'$',fontsize=14)
-plot(tf,c(15,tf),c.t,c(15,c.t))
-xlabel('t',fontsize=12)
-ylabel('k(t)',fontsize=12)
-
-################################################
-# Figura 3 : Apresenta curvograma e grafico 3D
-################################################
-fig = figure(3)
-title('Curvograma da imagem da Figura 1',fontsize=12)
-ax = Axes3D(fig)
-xlabel("t",fontsize=12)
-ylabel('$\sigma$',fontsize=14)
-x,y = meshgrid(c.t,s)
-ax.plot_surface(x,y,curvs,rstride = 20, cstride = 20)
-show()
+ 
+ 
