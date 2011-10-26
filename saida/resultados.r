@@ -30,8 +30,7 @@ for (i in seq(1,length(data),by=2)) {
   par(mfg=c(3, 1, 3, 2))
  }
  else par(mfg=c(3, 2, 3, 2))
- par(ylim = c(min(y),max(y)))
- plot(x,y,log="xy",xlab="sigma",ylab="K",col=i)
+ plot(x,log(y),log="x",xlab="sigma",ylim=c(-7,6),xlim=c(0.2,80),ylab="K",col=i)
 par(new=TRUE)
 }
 rm(i,f,x,y)
