@@ -1,0 +1,9 @@
+
+file_list = dir("./",pattern = "DAT$",sep = "\n")
+
+for (f in file_list) {
+ assign(f,read.table(f,header=TRUE))
+ attach(f)
+ plot(sigma,err_rms)
+ par(new = TRUE)
+}

@@ -65,8 +65,7 @@ class curvature_fft1d:
    self._mi = 0;
    self.sigmas = sigma_range
   # Extrai contorno da imagem
-   seq = FindContours(im, CreateMemStorage(),CV_RETR_LIST,CV_CHAIN_APPROX_NONE)
-      
+   seq = FindContours(im, CreateMemStorage(),CV_RETR_TREE,CV_CHAIN_APPROX_NONE)
   # z = Pontos do contorno, representados na forma complexa, extraidos da imagem 
   # na qual se deseja determinar a funcao de curvatura
    self.req_ecomp = req_ecomp

@@ -10,12 +10,11 @@
 
 import sys
 import os
+import shutil
 from os.path import *
 from re import *
 from numpy import *
 from scipy.interpolate import interp1d
-from matplotlib.pyplot import *
-from mpl_toolkits.mplot3d import *
 from curvature import curvature_fft1d
 
 # Esta função é chamada pelo método os.path.walk()
@@ -32,7 +31,7 @@ def visit(arg,d,fl):
   for f in fl:
    aux = join(d,f)   
    if isfile(aux):
-    r = compile("dat$")
+    r = compile("K_ana.dat")
     if r.search(aux):
       # arquivo .dat (curvatura analítica)
       arg[0].append(aux)
@@ -42,7 +41,10 @@ def visit(arg,d,fl):
        # arquivo .bmp (imagem para calculo da curvatura)
        arg[1].append(aux)
       # nome do arquivo .dat para saída
-       arg[2].append(r.sub("dat",aux))
+       aux = r.sub("dat",aux)
+       r = compile(d)
+       aux = r.sub("./"+OUTPUTDIR,aux)
+       arg[2].append(aux)
 
 # Esta funcao auxiliar calcula o erro RMS entre dois vetores
 # de mesmo tamanho
@@ -58,6 +60,7 @@ def rms_err(a,b):
 #       Programa Principal            #
 #                                     #
 #######################################
+OUTPUTDIR = "saida"
 
 # s : Faixa de valores e número de pontos para o
 # desvio padrão do filtro passa baixas Gaussiano.
@@ -65,7 +68,7 @@ def rms_err(a,b):
 # filtro, que é aplicado antes de se calcular a curvatura.
 # Quanto mais pontos mais curvaturas serão calculadas por imagem  
 
-sigma_range = logspace(-0.25,1.75,30.,endpoint = True)
+sigma_range = logspace(-0.7,2,40.,endpoint = True)
 # s  é apenas um apelido para sigma_range
 s = sigma_range
 
@@ -86,12 +89,12 @@ else: os.exit(-1)
 #  Computa curvatura e calcula o erro quadrático médio
 #  em relacao a resposta  analitica
 for ana_str,im_str,fout_str in zip(lista_de_arquivos[0],lista_de_arquivos[1],lista_de_arquivos[2]):
+ print im_str
  # Leitura dos dados para Vetor com reposta analítica
- ana = fromfile(ana_str,dtype=float,sep="\n")
+ ana = fromfile(ana_str,sep="\n")
  # arquivo de saída 
  fout = open(fout_str,"w")
  # Instancializa objeto para calculo de curvaturas
- print im_str
  c = curvature_fft1d(im_str,s)
  # curvs -> Curvograma k(sigma,t)
  curvs = ndarray((s.size,c.t.size),dtype="float")
@@ -101,16 +104,18 @@ for ana_str,im_str,fout_str in zip(lista_de_arquivos[0],lista_de_arquivos[1],lis
  # Parâmetro t para interpolação da função curvatura
  # para reamostragem com  o mesmo número de pontos que 
  # a resposta analítica
- tf = arange(ana.size)/float(ana.size-1)
+ tf = linspace(0,1,ana.size)
  # Interage para cada valor de sigma
  print >> fout,"sigma\terr_rms\n"
  for i in arange(s.size):
-   print "sigma = {0}".format(s[i])
    # obtém curvaturas para o curvograma
    #curvs[i] = c(i,c.t)
    # obtém o erro quadrático médio entre curvatura analítica
    # e a reamostrada 
-   err[i] = rms_err(ana,c(i,tf))
+   aux = c(i,tf)
+   err[i] = rms_err(ana,aux)
+   print "sigma = {0}, err_rms = {1}".format(s[i],err[i])
+  
    print >> fout,"{0}\t{1}".format(s[i],err[i])
  fout.close()
 
