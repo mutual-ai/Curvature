@@ -11,6 +11,7 @@
 import sys
 import os
 import shutil
+import tempfile
 from os.path import *
 from re import *
 from numpy import *
@@ -51,9 +52,10 @@ def visit(arg,d,fl):
 def rms_err(a,b):
   e = diff(array([a,b]),axis = 0)
   n = float(e.size)
-  e = sqrt(sum(square(e))/n)
-  return(e)
-
+  e_rms = sqrt(sum(square(e))/n)
+  e_mean = mean(e)
+  e_stdv = std(e)
+  return(e_rms,e_mean,e_stdv)
 
 #######################################
 #                                     #
@@ -68,7 +70,7 @@ OUTPUTDIR = "saida"
 # filtro, que é aplicado antes de se calcular a curvatura.
 # Quanto mais pontos mais curvaturas serão calculadas por imagem  
 
-sigma_range = logspace(-0.7,2,40.,endpoint = True)
+sigma_range = logspace(0,1.2,40.,endpoint = True)
 # s  é apenas um apelido para sigma_range
 s = sigma_range
 
@@ -97,26 +99,26 @@ for ana_str,im_str,fout_str in zip(lista_de_arquivos[0],lista_de_arquivos[1],lis
  # Instancializa objeto para calculo de curvaturas
  c = curvature_fft1d(im_str,s)
  # curvs -> Curvograma k(sigma,t)
- curvs = ndarray((s.size,c.t.size),dtype="float")
+ #curvs = ndarray((s.size,c.t.size),dtype="float")
  # Erro quadrático médio do calculo da curvatura 
  # da forma sob análise para cada valor de sigma
- err =  ndarray((s.size),dtype="float")
+ #err =  ndarray((s.size),dtype="double")
+
  # Parâmetro t para interpolação da função curvatura
  # para reamostragem com  o mesmo número de pontos que 
  # a resposta analítica
  tf = linspace(0,1,ana.size)
  # Interage para cada valor de sigma
- print >> fout,"sigma\terr_rms\n"
+ print >> fout,"sigma\terr_rms\tmean\t"
  for i in arange(s.size):
    # obtém curvaturas para o curvograma
    #curvs[i] = c(i,c.t)
    # obtém o erro quadrático médio entre curvatura analítica
    # e a reamostrada 
-   aux = c(i,tf)
-   err[i] = rms_err(ana,aux)
-   print "sigma = {0}, err_rms = {1}".format(s[i],err[i])
-  
-   print >> fout,"{0}\t{1}".format(s[i],err[i])
+   e,mi,sd = rms_err(ana,c(i,tf))
+   #err[i] = e
+   #print "sigma = {0}, err_rms = {1}, mean = {2}, std = {3}".format(s[i],e,mi)
+   print >> fout,"{0}\t{1}\t{2}".format(s[i],e,mi)
  fout.close()
 
  

@@ -48,8 +48,10 @@ class curvature_fft1d:
      _Fdd = - (2 * pi * self.freq)**2 * _F_filtr
 
      # Retorna ao dominio espacial 
-     _zd   = fft.ifft(_Fd)*_k
-     _zdd  = fft.ifft(_Fdd)*_k
+     self.zd = fft.ifft(_Fd)*_k
+     _zd   =  self.zd
+     self.zdd = fft.ifft(_Fdd)*_k
+     _zdd  = self.zdd
 
      # Calcula curvatura 
      _curv = _zd * conjugate(_zdd)
