@@ -5,19 +5,20 @@ from cv import *
 
  #  curvature_fft1d : 
  #  class to compute curvature for a given contour
- #  args[0] :  filename for contour extraction
- #  Must be previously segmented  
- #  args[1] :  Gaussian window's standard deviation.
- #  for frequency domain smoothing (1D LPF)
- #  if std deviation is zero no smoothing is performed at all
+ #  fname :  filename for contour extraction. Must be binary image  
+ #  sigma_range :  Gaussian window's standard deviation (LPF bandwidth) for frequency domain contour smoothing.
+ #                when zero no filtering is applied to contour
+ #  method : Calculation method string. Currently only "fft1d" is supported
 
-class curvature_fft1d:
+class curvature:
  # Gaussian smoothing function 
   def _G(self):
     return (1/(self._sig*(2*pi)**0.5))*exp(-(self.freq-self._mi)**2/(2*(self._sig**2)))
+
  # Auxiliary method to calculate perimeter 
   def _L(self):
    return (2*pi*sum(abs(self.zd))/float(self.zd.size))
+
  # Perform computation stuff   
   def _Calcula_Curvograma(self):
    N = self.z.size
@@ -27,7 +28,7 @@ class curvature_fft1d:
    _F = fft.fft(self.z)
    
    self.curvs = ndarray((self.sigmas.size,self.t.size),dtype = "float")
-   self.rcountours = ndarray((self.sigmas.size,self.t.size),dtype = "complex") 
+   self.rcontours = ndarray((self.sigmas.size,self.t.size),dtype = "complex") 
    self.perimeter = ndarray((self.sigmas.size),dtype = "float")
 
    # Calcula energia da imagem atraves de seu espectro de Fourier
@@ -41,15 +42,12 @@ class curvature_fft1d:
       _F_filtr = _F * self._G()
       # Calcula novo valor de energia apos filtragem
       _Eg  = sum(_F_filtr * conjugate(_F_filtr))
-      if self.req_ecomp:
-       _k = sqrt(_E/_Eg)
-      else:
-       _k = 1.
+      _k = sqrt(_E/_Eg)
      else: 
       _k = 1.
      
      # Resconstructed contour after LPF in frequency domain
-     self.rcountours[i] = copy(fft.ifft(_F_filtr)*_k) 
+     self.rcontours[i] = copy(fft.ifft(_F_filtr)*_k) 
 
      # Calcula derivadas 1st and 2nd no dominio da frequencia
      _Fd = complex(0,1) * 2 * pi * self.freq * _F_filtr
@@ -72,7 +70,7 @@ class curvature_fft1d:
      self.curvs[i] = copy(_curv)   
  
   # Contructor 
-  def __init__(self,fname,sigma_range = linspace(2,30,10), req_ecomp = True):
+  def __init__(self,fname,sigma_range = linspace(2,30,10), method = "fft1d"):
   # Carrega imagem
    im = LoadImageM(fname,CV_LOAD_IMAGE_GRAYSCALE)
    self._mi = 0;
@@ -80,8 +78,8 @@ class curvature_fft1d:
   # Extrai contorno da imagem
    seq = FindContours(im, CreateMemStorage(),CV_RETR_LIST,CV_CHAIN_APPROX_NONE)
    # z = Pontos do contorno, representados na forma complexa, extraidos da imagem 
-  # na qual se deseja determinar a funcao de curvatura
-   self.req_ecomp = req_ecomp
+   # na qual se deseja determinar a funcao de curvatura
+
    self.z = ndarray(len(seq),dtype='complex')
   
    for c,i in zip(seq,arange(self.z.size)):
@@ -94,7 +92,7 @@ class curvature_fft1d:
  # It is called into class constructor
   def __call__(self,sig_idx,t= None):
     if t is not None:
-     _curv = interp1d(t,y = self.curvs[sig_idx],kind='quadratic')
+     _curv = interp1d(self.t,y = self.curvs[sig_idx],kind='quadratic')
      return(_curv(t))
     else:
      return(self.curvs[sig_idx])
