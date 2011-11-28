@@ -94,7 +94,7 @@ class curvature_fft1d:
  # It is called into class constructor
   def __call__(self,sig_idx,t= None):
     if t is not None:
-     _curv = interp1d(self.t,y = self.curvs[sig_idx],kind='quadratic')
+     _curv = interp1d(t,y = self.curvs[sig_idx],kind='quadratic')
      return(_curv(t))
     else:
      return(self.curvs[sig_idx])
