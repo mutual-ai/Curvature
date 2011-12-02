@@ -16,7 +16,7 @@ from os.path import *
 from re import *
 from numpy import *
 from scipy.interpolate import interp1d
-from curvature import curvature
+from curvature import curvature_fft1d
 
 # Esta função é chamada pelo método os.path.walk()
 # Coloca em três listas (arg[0], arg[1] e arg[2]) 
@@ -97,7 +97,7 @@ for ana_str,im_str,fout_str in zip(lista_de_arquivos[0],lista_de_arquivos[1],lis
  # arquivo de saída 
  fout = open(fout_str,"w")
  # Instancializa objeto para calculo de curvaturas
- c = curvature(im_str,s)
+ c = curvature_fft1d(im_str,s)
  # curvs -> Curvograma k(sigma,t)
  #curvs = ndarray((s.size,c.t.size),dtype="float")
  # Erro quadrático médio do calculo da curvatura 
