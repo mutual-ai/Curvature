@@ -37,6 +37,4 @@ img = img.imread("./misc_cells.bmp")
 bx = subplot(122)
 gray()
 imshow(img[::-1])
-    
-
 show()
