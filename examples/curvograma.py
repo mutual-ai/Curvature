@@ -87,8 +87,8 @@ xlabel('t',fontsize=fsize)
 ylabel('$k(t)$',fontsize=fsize)
 
 subplot(339)
-title('$\sigma = '+ repr(s[0])+'$',fontsize=fsize)
-plot(tf,c(0,tf),lw=lwidth)
+title('$\sigma = '+ repr(s[5])+'$',fontsize=fsize)
+plot(tf,c(5,tf),lw=lwidth)
 xlabel('t',fontsize=fsize)
 ylabel('$k(t)$',fontsize=fsize)
 
