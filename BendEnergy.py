@@ -1,3 +1,4 @@
+import numpy
 from curvature import *
 
 class BendEnergy:
@@ -9,10 +10,7 @@ class BendEnergy:
    self.phi[i] = (k.perimeter[i]**2)*mean(k(i)**2)
   self.sigma = 1/k.sigmas
 
- def __call__(self,i = None):
-  if i is None: 
-   _aux = self.phi
-  else:
-   _aux = self.phi[i]
+ def __call__(self,i = None): 
+  _aux = self.phi[i]
  
   return (_aux)

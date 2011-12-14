@@ -22,7 +22,7 @@ class curvature:
  # Perform computation stuff   
   def _Calcula_Curvograma(self):
    N = self.z.size
-   self.t = arange(N)/float(N-1)
+   self.t = linspace(0,1,N)
    self.freq = fft.fftfreq(N,1./float(N))  
    # Compute FFT
    _F = fft.fft(self.z)
@@ -70,22 +70,24 @@ class curvature:
      self.curvs[i] = copy(_curv)   
  
   # Contructor 
-  def __init__(self,fname,sigma_range = linspace(2,30,10), method = "fft1d"):
+  def __init__(self,fn = None,sigma_range = linspace(2,30,10), method = "fft1d"):
   # Carrega imagem
-   im = LoadImageM(fname,CV_LOAD_IMAGE_GRAYSCALE)
+   if type(fn) is str:
+    im = LoadImageM(fname,CV_LOAD_IMAGE_GRAYSCALE)
+    # Extrai contorno da imagem
+    seq = FindContours(im, CreateMemStorage(),CV_RETR_LIST,CV_CHAIN_APPROX_NONE)
+    # z = Pontos do contorno, representados na forma complexa, extraidos da imagem 
+    # na qual se deseja determinar a funcao de curvatura
+    self.z = ndarray(len(seq),dtype='complex')
+    for c,i in zip(seq,arange(self.z.size)):
+     re,im = c[1],c[0] 
+     self.z[i] = complex(re,im)
+   elif (type(fn) is ndarray) and (fn.dtype is dtype("complex")):
+    self.z = copy(fn)
+
    self._mi = 0;
    self.sigmas = sigma_range
-  # Extrai contorno da imagem
-   seq = FindContours(im, CreateMemStorage(),CV_RETR_LIST,CV_CHAIN_APPROX_NONE)
-   # z = Pontos do contorno, representados na forma complexa, extraidos da imagem 
-   # na qual se deseja determinar a funcao de curvatura
-
-   self.z = ndarray(len(seq),dtype='complex')
   
-   for c,i in zip(seq,arange(self.z.size)):
-    re,im = c[1],c[0] 
-    self.z[i] = complex(re,im)
-
    self._Calcula_Curvograma()
 
  # Function to compute curvature
