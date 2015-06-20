@@ -1,4 +1,5 @@
 from numpy import *
+import scipy
 from scipy.interpolate import *
 from cv import *
 
@@ -67,7 +68,7 @@ class curvature:
      _curv = _curv/(abs(_zd)**3)
 
      # Array bidimensional curvs = Curvature Function k(sigma,t) 
-     self.curvs[i] = copy(_curv)   
+     self.curvs[i] = scipy.atan(_curv)*self.perimeter[i]   
  
   # Contructor 
   def __init__(self,fn = None,sigma_range = linspace(2,30,10), method = "fft1d"):
